@@ -1,15 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const userController = require('../controllers/user.controller');
+const { createUser, getAllUsers, updateUser, getUserById, deleteUser } = require('../controllers/user.controller.js');
 
-// Misal middleware auth dan isAdmin sudah ada
-
-router.get('/users', userController.getAllUsers);
-router.get('/user/:id', userController.getUserById);
-
-// Hanya admin yang bisa create, update, dan delete user
-// router.post('/', userController.createUser);
-// router.put('/:id', userController.updateUser);
-// router.delete('/:id', userController.deleteUser);
+router.get('/users', getAllUsers);
+router.get('/user/:id', getUserById);
+router.post('/user/create', createUser);
+router.put('/user/:id', updateUser);
+router.delete('/user/:id',deleteUser);
 
 module.exports = router;

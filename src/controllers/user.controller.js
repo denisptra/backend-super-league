@@ -1,114 +1,180 @@
-const userData = require('../data/users');
+const { PrismaClient } = require('../generated/prisma');
+const prisma = new PrismaClient();
 
-const getAllUsers = (_req, res) => {
-  if (userData && userData.length > 0) {
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!users.length) {
+      return res.status(404).json({
+        status: "error",
+        message: "Tidak ada user yang ditemukan.",
+        data: [],
+      });
+    }
+
     res.status(200).json({
       status: "success",
-      message: "Semua data user berhasil diambil.",
-      data: userData,
+      message: "Berhasil mengambil semua data user.",
+      data: users,
     });
-  } else {
-    res.status(404).json({
+
+  } catch (err) {
+    console.error("Error getAllUsers:", err);
+    res.status(500).json({
       status: "error",
-      message: "Data user tidak ditemukan.",
-      data: null,
+      message: "Terjadi kesalahan pada server.",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
     });
   }
 };
 
-const getUserById = (req, res) => {
-  const userId = parseInt(req.params.id);
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({ where: { id: Number(id) } });
 
-  const user = userData.find((n) => n.id === userId);
+    if (!user) {
+      return res.status(404).json({
+        status: "Fail",
+        message: `User dengan ID ${id} tidak ditemukan.`,
+      });
+    }
 
-  if (user) {
-    res.status(200).json({
-      status: "success",
-      message: "Data user berhasil ditemukan.",
+    return res.status(200).json({
+      status: "Success",
+      message: "Data user berhasil diambil.",
       data: user,
     });
-  } else {
-    res.status(404).json({
-      status: "error",
-      message: `user dengan ID ${userId} tidak ditemukan.`,
-      data: null,
+  } catch (err) {
+    return res.status(500).json({
+      status: "Error",
+      message: "Terjadi kesalahan saat mengambil data user.",
+      error: err.message,
     });
   }
 };
-// const createUser = (req, res) => {
-//   const { username, email, name, password, confirmPassword, role } = req.body;
-//   const newId =
-//     userData.length > 0 ? userData[userData.length - 1].id + 1 : 1;
-//   const newUser = {
-//     id: newId,
-//     username,
-//     email,
-//     name,
-//     password,
-//     confirmPassword,
-//     role,
-//     createdAt: new Date(),
-//     updatedAt: new Date(),
-//   };
-//   userData.push(newUser);
-//   res.status(201).json({
-//     status: "success",
-//     message: "User berhasil ditambahkan.",
-//     data: newUser,
-//   });
-// };
-// const updateUser = (req, res) => {
-//   const userId = parseInt(req.params.id);
-//   const { username, email, name, password, confirmPassword, role } = req.body;
-//   const userIndex = userData.findIndex((n) => n.id === userId);
-//   if (userIndex !== -1) {
-//     userData[userIndex] = {
-//       id: userId,
-//       username,
-//       email,
-//       name,
-//       password,
-//       confirmPassword,
-//       role,
-//       createdAt: userData[userIndex].createdAt,
-//       updatedAt: new Date(),
-//     };
-//     res.status(200).json({
-//       status: "success",
-//       message: "Data user berhasil diperbarui.",
-//       data: userData[userIndex],
-//     });
-//   } else {
-//     res.status(404).json({
-//       status: "error",
-//       message: `user dengan ID ${userId} tidak ditemukan.`,
-//       data: null,
-//     });
-//   }
-// };
-// const deleteUser = (req, res) => {
-//   const userId = parseInt(req.params.id);
-//   const userIndex = userData.findIndex((n) => n.id === userId);
-//   if (userIndex !== -1) {
-//     const deletedUser = userData.splice(userIndex, 1);
-//     res.status(200).json({
-//       status: "success",
-//       message: "Data user berhasil dihapus.",
-//       data: deletedUser[0],
-//     });
-//   } else {
-//     res.status(404).json({
-//       status: "error",
-//       message: `user dengan ID ${userId} tidak ditemukan.`,
-//       data: null,
-//     });
-//   }
-// };
+
+const createUser = async (req, res) => {
+  try {
+    const { name, email, password, role } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        status: "error",
+        message: "Field name, email, dan password wajib diisi.",
+      });
+    }
+
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({
+        status: "error",
+        message: "Email sudah digunakan.",
+      });
+    }
+
+    const user = await prisma.user.create({
+      data: { name, email, password, role: role || "Writer" },
+    });
+
+    res.status(201).json({
+      status: "success",
+      message: "User berhasil dibuat",
+      data: user,
+    });
+
+  } catch (err) {
+    console.error("Error createUser:", err);
+    res.status(500).json({
+      status: "error",
+      message: "Terjadi kesalahan pada server.",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    });
+  }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, email, password, role } = req.body;
+
+    const user = await prisma.user.findUnique({ where: { id: Number(id) } });
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        code: 404,
+        message: `User dengan ID ${id} tidak ditemukan.`,
+      });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: Number(id) },
+      data: {
+        name: name || user.name,
+        email: email || user.email,
+        password: password || user.password,
+        role: role || user.role,
+      },
+    });
+
+    res.status(200).json({
+      status: "success",
+      code: 200,
+      message: `User dengan ID ${id} berhasil diperbarui.`,
+      data: updatedUser,
+    });
+
+  } catch (err) {
+    console.error(" Error updateUser:", err);
+    res.status(500).json({
+      status: "error",
+      code: 500,
+      message: "Terjadi kesalahan pada server.",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
+    });
+  }
+};
+
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const existingUser = await prisma.user.findUnique({ where: { id: Number(id) } });
+    if (!existingUser) {
+      return res.status(404).json({
+        status: "Fail",
+        message: `User dengan ID ${id} tidak ditemukan.`,
+      });
+    }
+
+    await prisma.user.delete({ where: { id: Number(id) } });
+
+    return res.status(200).json({
+      status: "Success",
+      message: "User berhasil dihapus.",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "Error",
+      message: "Gagal menghapus user.",
+      error: err.message,
+    });
+  }
+};
+
+
+
+
+
+
 
 module.exports = {
   getAllUsers,
-  getUserById
-  // createUser,
-  // updateUser,
-  // deleteUser,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser
 };
