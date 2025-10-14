@@ -7,6 +7,8 @@ const getAllNews = async (req, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
+    // sql: select * from News order by createdAt desc
+
     if (!news.length) {
       return res.status(404).json({
         status: "error",
