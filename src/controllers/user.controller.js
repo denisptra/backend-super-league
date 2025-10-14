@@ -80,6 +80,8 @@ const createUser = async (req, res) => {
       data: { name, email, password, role: role || "Writer" },
     });
 
+    // sql : insert into User (name, email, password, role) values (values 1), (values 2), (values 3);
+
     res.status(201).json({
       status: "success",
       message: "User berhasil dibuat",
