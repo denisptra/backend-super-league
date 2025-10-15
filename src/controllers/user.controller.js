@@ -1,12 +1,9 @@
-const { PrismaClient } = require('../generated/prisma');
-const prisma = new PrismaClient();
+const bcrypt = require("bcryptjs");
+const userRepository = require("../repositories/user.repository");
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-
+    const users = await userRepository.findAllUsers();
     if (!users.length) {
       return res.status(404).json({
         status: "error",
@@ -15,45 +12,33 @@ const getAllUsers = async (req, res) => {
       });
     }
 
+    users.forEach((user) => delete user.password);
+
     res.status(200).json({
       status: "success",
       message: "Berhasil mengambil semua data user.",
       data: users,
     });
-
   } catch (err) {
-    console.error("Error getAllUsers:", err);
-    res.status(500).json({
-      status: "error",
-      message: "Terjadi kesalahan pada server.",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-    });
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 };
 
 const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await prisma.user.findUnique({ where: { id: Number(id) } });
-
+    const user = await userRepository.findUserById(id);
     if (!user) {
       return res.status(404).json({
-        status: "Fail",
+        status: "fail",
         message: `User dengan ID ${id} tidak ditemukan.`,
       });
     }
 
-    return res.status(200).json({
-      status: "Success",
-      message: "Data user berhasil diambil.",
-      data: user,
-    });
+    delete user.password;
+    res.status(200).json({ status: "success", data: user });
   } catch (err) {
-    return res.status(500).json({
-      status: "Error",
-      message: "Terjadi kesalahan saat mengambil data user.",
-      error: err.message,
-    });
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 };
 
@@ -68,7 +53,7 @@ const createUser = async (req, res) => {
       });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await userRepository.findUserByEmail(email);
     if (existingUser) {
       return res.status(409).json({
         status: "error",
@@ -76,23 +61,24 @@ const createUser = async (req, res) => {
       });
     }
 
-    const user = await prisma.user.create({
-      data: { name, email, password, role: role || "Writer" },
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const safeRole = ["Writer", "Editor"].includes(role) ? role : "Writer";
+
+    const user = await userRepository.createUser({
+      name,
+      email,
+      password: hashedPassword,
+      role: safeRole,
     });
 
+    delete user.password;
     res.status(201).json({
       status: "success",
       message: "User berhasil dibuat",
       data: user,
     });
-
   } catch (err) {
-    console.error("Error createUser:", err);
-    res.status(500).json({
-      status: "error",
-      message: "Terjadi kesalahan pada server.",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-    });
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 };
 
@@ -101,80 +87,66 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
     const { name, email, password, role } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { id: Number(id) } });
-    if (!user) {
+    const existingUser = await userRepository.findUserById(id);
+    if (!existingUser) {
       return res.status(404).json({
         status: "error",
-        code: 404,
         message: `User dengan ID ${id} tidak ditemukan.`,
       });
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: Number(id) },
-      data: {
-        name: name || user.name,
-        email: email || user.email,
-        password: password || user.password,
-        role: role || user.role,
-      },
+    const hashedPassword = password
+      ? await bcrypt.hash(password, 10)
+      : existingUser.password;
+
+    const safeRole = ["Writer", "Editor"].includes(role)
+      ? role
+      : existingUser.role;
+
+    const updatedUser = await userRepository.updateUser(id, {
+      name: name || existingUser.name,
+      email: email || existingUser.email,
+      password: hashedPassword,
+      role: safeRole,
     });
+
+    delete updatedUser.password;
 
     res.status(200).json({
       status: "success",
-      code: 200,
       message: `User dengan ID ${id} berhasil diperbarui.`,
       data: updatedUser,
     });
-
   } catch (err) {
-    console.error(" Error updateUser:", err);
-    res.status(500).json({
-      status: "error",
-      code: 500,
-      message: "Terjadi kesalahan pada server.",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-    });
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 };
 
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const existingUser = await prisma.user.findUnique({ where: { id: Number(id) } });
+    const existingUser = await userRepository.findUserById(id);
     if (!existingUser) {
       return res.status(404).json({
-        status: "Fail",
+        status: "fail",
         message: `User dengan ID ${id} tidak ditemukan.`,
       });
     }
 
-    await prisma.user.delete({ where: { id: Number(id) } });
-
-    return res.status(200).json({
-      status: "Success",
+    await userRepository.deleteUser(id);
+    res.status(200).json({
+      status: "success",
       message: "User berhasil dihapus.",
     });
   } catch (err) {
-    return res.status(500).json({
-      status: "Error",
-      message: "Gagal menghapus user.",
-      error: err.message,
-    });
+    res.status(500).json({ status: "error", message: "Server error" });
   }
 };
-
-
-
-
-
-
 
 module.exports = {
   getAllUsers,
   getUserById,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
 };

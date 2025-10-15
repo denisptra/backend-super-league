@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -19,7 +18,7 @@ model User {
   name      String
   email     String   @unique
   password  String
-  role      Role     @default(Writer)
+  role       Role     @default(Writer)
   news      News[]   @relation("UserNews")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -35,10 +34,58 @@ model News {
   id          Int      @id @default(autoincrement())
   title       String
   description String
-  date        DateTime 
+  date        DateTime @default(now())
+  image       String?
   status      Status   @default(Pending)
   authorId    Int
   author      User     @relation("UserNews", fields: [authorId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+enum MatchStatus {
+  Incoming
+  Live
+  Finished
+}
+
+model Team {
+  id          Int     @id @default(autoincrement())
+  name        String
+  short_name  String?
+  image       String?
+  description String?
+
+  // 🔥 Statistik Klasemen
+  played      Int     @default(0)
+  win         Int     @default(0)
+  draw        Int     @default(0)
+  loss        Int     @default(0)
+  gf          Int     @default(0)   // Goals For
+  ga          Int     @default(0)   // Goals Against
+  gd          Int     @default(0)   // Goal Difference
+  points      Int     @default(0)
+  form        String? // Riwayat pertandingan: "W,D,L,W,W"
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  homeMatches Match[]  @relation("HomeTeam")
+  awayMatches Match[]  @relation("AwayTeam")
+}
+
+model Match {
+  id         Int          @id @default(autoincrement())
+  team_a     Int
+  team_b     Int
+  date       DateTime
+  location   String
+  status     MatchStatus  @default(Incoming)
+  score_a    Int?         @default(0)
+  score_b    Int?         @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  homeTeam   Team @relation("HomeTeam", fields: [team_a], references: [id])
+  awayTeam   Team @relation("AwayTeam", fields: [team_b], references: [id])
 }

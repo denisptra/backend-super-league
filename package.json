@@ -11,16 +11,17 @@
     "start": "nodemon index.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.17.0",
+    "@prisma/client": "^6.17.1",
+    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "cross": "^1.0.0",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.0",
     "nodemon": "^3.1.10",
     "prisma": "^6.17.0"
   },
-  "devDependencies": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/denisptra/backend-super-league.git"
