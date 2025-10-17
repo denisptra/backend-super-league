@@ -195,3 +195,26 @@ module.exports = {
     updateNews,
     deleteNews
 };
+
+//test nnti hapus
+/*
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+export const createNews = async (req, res) => {
+  try {
+    const { title, description, authorId } = req.body;
+    const newNews = await prisma.news.create({
+      data: {
+        title,
+        description,
+        authorId: Number(authorId),
+        date: new Date(),
+      },
+    });
+    res.status(201).json(newNews);
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menambahkan berita" });
+  }
+};
+*/
