@@ -12,8 +12,8 @@ const authorizeRole = require('../middlewares/role.middleware');
 
 
 // CRUD Endpoints
-router.get('/teams',authenticateToken, authorizeRole("Administrator", "Editor"), getAllTeams);
-router.get('/team/:id',authenticateToken, authorizeRole("Administrator", "Editor"), getTeamById);
+router.get('/teams', getAllTeams);
+router.get('/team/:id', getTeamById);
 router.post('/team/create',authenticateToken, authorizeRole("Administrator", "Editor"), createTeam);
 router.put('/team/:id',authenticateToken, authorizeRole("Administrator", "Editor"), updateTeam);
 router.delete('/team/:id',authenticateToken, authorizeRole("Administrator", "Editor"), deleteTeam);

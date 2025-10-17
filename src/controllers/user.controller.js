@@ -30,7 +30,7 @@ const getUserById = async (req, res) => {
     const user = await userRepository.findUserById(id);
     if (!user) {
       return res.status(404).json({
-        status: "fail",
+        status: "Tidak ditemukan",
         message: `User dengan ID ${id} tidak ditemukan.`,
       });
     }

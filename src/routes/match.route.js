@@ -10,8 +10,8 @@ const {
 const authenticateToken = require('../middlewares/auth.middleware');
 const authorizeRole = require('../middlewares/role.middleware');
 
-router.get('/matches',authenticateToken, authorizeRole("Administrator", "Editor"), getAllMatches);
-router.get('/match/:id',authenticateToken, authorizeRole("Administrator", "Editor"), getMatchById);
+router.get('/matches', getAllMatches);
+router.get('/match/:id', getMatchById);
 router.post('/match/create',authenticateToken, authorizeRole("Administrator", "Editor"), createMatch);
 router.put('/match/:id',authenticateToken, authorizeRole("Administrator", "Editor"), updateMatch);
 router.delete('/match/:id',authenticateToken, authorizeRole("Administrator", "Editor"), deleteMatch);

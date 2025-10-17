@@ -41,7 +41,7 @@ const login = async (loginData) => {
   });
 
   if (!user) {
-    throw new Error("Email atau password salah");
+    throw new Error("User Tidak ditemukan");
   }
 
   const isPasswordMatch = await bcrypt.compare(password, user.password);
