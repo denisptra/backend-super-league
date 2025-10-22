@@ -2,50 +2,47 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-async function findAllMatches(status) {
-  const where = status ? { status } : {};
-  return prisma.match.findMany({
-    where,
-    include: { homeTeam: true, awayTeam: true },
-    orderBy: { date: "desc" },
-  });
-}
+const findAllMatches = async (status) => {
+  const whereClause = status ? { status: status } : {};
+  return prisma.match.findMany({
+    where: whereClause,
+    include: {
+      homeTeam: { select: { id: true, name: true, short_name: true } },
+      awayTeam: { select: { id: true, name: true, short_name: true } },
+    },
+    orderBy: { date: 'asc' },
+  });
+};
 
-async function findMatchById(id) {
-  return prisma.match.findUnique({
-    where: { id: Number(id) },
-    include: { homeTeam: true, awayTeam: true },
-  });
-}
+const findMatchById = async (id) => {
+  return prisma.match.findUnique({
+    where: { id: id },
+    include: {
+      homeTeam: { select: { id: true, name: true, short_name: true } },
+      awayTeam: { select: { id: true, name: true, short_name: true } },
+    },
+  });
+};
 
-// Create match
-async function createMatch(data) {
-  return prisma.match.create({
-    data,
-    include: { homeTeam: true, awayTeam: true },
-  });
-}
+const createMatch = async (data) => {
+  return prisma.match.create({ data });
+};
 
-// Update match
-async function updateMatch(id, data) {
-  return prisma.match.update({
-    where: { id: Number(id) },
-    data,
-    include: { homeTeam: true, awayTeam: true },
-  });
-}
+const updateMatch = async (id, data) => {
+  return prisma.match.update({
+    where: { id: id },
+    data,
+  });
+};
 
-// Delete match
-async function deleteMatch(id) {
-  return prisma.match.delete({
-    where: { id: Number(id) },
-  });
-}
+const deleteMatch = async (id) => {
+  return prisma.match.delete({ where: { id: id } });
+};
 
 module.exports = {
-  findAllMatches,
-  findMatchById,
-  createMatch,
-  updateMatch,
-  deleteMatch,
+  findAllMatches,
+  findMatchById,
+  createMatch,
+  updateMatch,
+  deleteMatch,
 };

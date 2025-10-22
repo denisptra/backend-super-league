@@ -10,8 +10,6 @@ const {
 const authenticateToken = require('../middlewares/auth.middleware');
 const authorizeRole = require('../middlewares/role.middleware');
 
-
-// CRUD Endpoints
 router.get('/teams', getAllTeams);
 router.get('/team/:id', getTeamById);
 router.post('/team/create',authenticateToken, authorizeRole("Administrator", "Editor"), createTeam);

@@ -3,7 +3,6 @@ const prisma = new PrismaClient();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-// REGISTER USER
 const register = async (userData) => {
   const { name, email, password } = userData;
 
@@ -14,9 +13,7 @@ const register = async (userData) => {
   if (existingUser) {
     throw new Error("Email sudah digunakan");
   }
-
   const hashedPassword = await bcrypt.hash(password, 10);
-
   const newUser = await prisma.user.create({
     data: {
       name,
@@ -26,7 +23,6 @@ const register = async (userData) => {
   });
 
   const { password: _, ...result } = newUser;
-
   return {
     message: "Registrasi berhasil",
     user: result,
@@ -47,22 +43,29 @@ const login = async (loginData) => {
   const isPasswordMatch = await bcrypt.compare(password, user.password);
 
   if (!isPasswordMatch) {
-    throw new Error("Email atau password salah");
+    throw new Error("Email atau Password salah");
   }
 
   const token = jwt.sign(
     {
       id: user.id,
+      name: user.name,
       email: user.email,
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "60m" }
   );
 
   return {
     message: "Login berhasil",
     token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
+    },
   };
 };
 

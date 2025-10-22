@@ -7,7 +7,7 @@ const authorizeRole = require('../middlewares/role.middleware');
 router.get('/news', getAllNews);
 router.get('/news/:id', getNewsById);
 router.post('/news/create', authenticateToken, authorizeRole("Administrator", "Writer"), createNews);
-router.patch('/news/:id', authenticateToken, authorizeRole("Administrator", "Writer"), updateNews);
+router.put('/news/:id', authenticateToken, authorizeRole("Administrator", "Writer"), updateNews);
 router.delete('/news/:id',authenticateToken, authorizeRole("Administrator", "Writer"), deleteNews);
 
 module.exports = router;

@@ -1,165 +1,96 @@
 // controllers/team.controller.js
 const teamRepository = require("../repositories/team.repository");
 
-// GET ALL TEAMS
 const getAllTeams = async (req, res) => {
-  try {
-    const teams = await teamRepository.findAllTeams();
-
-    if (!teams.length) {
-      return res.status(404).json({
-        status: "error",
-        message: "Tidak ada tim yang ditemukan.",
-        data: [],
-      });
+    try {
+        const teams = await teamRepository.findAllTeams();
+        if (!teams || teams.length === 0) {
+            return res.status(404).json({ status: "error", message: "Tidak ada tim.", data: [] });
+        }
+        res.status(200).json({ status: "success", message: "OK", data: teams });
+    } catch (error) {
+        console.error("Error in getAllTeams:", error);
+        res.status(500).json({ status: "error", message: "Server error" });
     }
-
-    res.status(200).json({
-      status: "success",
-      message: "Berhasil mengambil semua tim.",
-      data: teams,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Server error",
-    });
-  }
 };
 
-// GET TEAM BY ID
 const getTeamById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const team = await teamRepository.findTeamById(id);
-
-    if (!team) {
-      return res.status(404).json({
-        status: "error",
-        message: `Tim dengan ID ${id} tidak ditemukan.`,
-      });
+    try {
+        const id = Number(req.params.id);
+        const team = await teamRepository.findTeamById(id);
+        if (!team) {
+            return res.status(404).json({ status: "error", message: "Tim tidak ditemukan" });
+        }
+        res.status(200).json({ status: "success", data: team });
+    } catch (error) {
+        console.error("Error in getTeamById:", error);
+        res.status(500).json({ status: "error", message: "Server error" });
     }
-
-    res.status(200).json({
-      status: "success",
-      message: "Berhasil mengambil data tim.",
-      data: team,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Server error",
-    });
-  }
 };
 
-// CREATE TEAM
 const createTeam = async (req, res) => {
-  try {
-    const { name, short_name, image, description, played, win, draw, loss, points } = req.body;
+    try {
+        const { name, short_name, image, description } = req.body;
+        if (!name || !short_name) {
+            return res.status(400).json({ status: "error", message: "name dan short_name wajib" });
+        }
 
-    if (!name) {
-      return res.status(400).json({
-        status: "error",
-        message: "Field name wajib diisi.",
-      });
+        const team = await teamRepository.createTeamWithStanding({
+            name: String(name),
+            short_name: String(short_name),
+            image: image ? String(image) : null,
+            description: description ? String(description) : null,
+        });
+
+        res.status(201).json({ status: "success", message: "Tim dan Standing berhasil dibuat", data: team });
+    } catch (error) {
+        console.error("Error in createTeam:", error);
+        if (error.code === 'P2002') {
+             return res.status(409).json({ status: "error", message: "Tim dengan nama atau short_name tersebut sudah ada." });
+        }
+        res.status(500).json({ status: "error", message: "Server error" });
     }
-
-    const team = await teamRepository.createTeam({
-      name,
-      short_name: short_name || null,
-      image: image || null,
-      description: description || null,
-      played: played ?? 0,
-      win: win ?? 0,
-      draw: draw ?? 0,
-      loss: loss ?? 0,
-      points: points ?? 0,
-    });
-
-    res.status(201).json({
-      status: "success",
-      message: "Tim berhasil dibuat.",
-      data: team,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Server error",
-    });
-  }
 };
 
-// UPDATE TEAM
 const updateTeam = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, short_name, image, description, played, win, draw, loss, points } = req.body;
+    try {
+        const id = Number(req.params.id);
+        const { name, short_name, image, description } = req.body;
+        
+        const updated = await teamRepository.updateTeam(id, { name, short_name, image, description });
 
-    const existingTeam = await teamRepository.findTeamById(id);
-    if (!existingTeam) {
-      return res.status(404).json({
-        status: "error",
-        message: `Tim dengan ID ${id} tidak ditemukan.`,
-      });
+        res.status(200).json({ status: "success", message: "Tim berhasil diperbarui", data: updated });
+    } catch (error) {
+        console.error("Error in updateTeam:", error);
+        if (error.code === 'P2002') {
+             return res.status(409).json({ status: "error", message: "Nama atau short_name sudah digunakan oleh tim lain." });
+        }
+        if (error.code === 'P2025') {
+            return res.status(404).json({ status: "error", message: "Tim tidak ditemukan" });
+        }
+        res.status(500).json({ status: "error", message: "Server error" });
     }
-
-    const updatedTeam = await teamRepository.updateTeam(id, {
-      name: name || existingTeam.name,
-      short_name: short_name ?? existingTeam.short_name,
-      image: image ?? existingTeam.image,
-      description: description ?? existingTeam.description,
-      played: played ?? existingTeam.played,
-      win: win ?? existingTeam.win,
-      draw: draw ?? existingTeam.draw,
-      loss: loss ?? existingTeam.loss,
-      points: points ?? existingTeam.points,
-    });
-
-    res.status(200).json({
-      status: "success",
-      message: `Tim dengan ID ${id} berhasil diperbarui.`,
-      data: updatedTeam,
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Server error",
-    });
-  }
 };
 
-// DELETE TEAM
 const deleteTeam = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const existingTeam = await teamRepository.findTeamById(id);
-    if (!existingTeam) {
-      return res.status(404).json({
-        status: "error",
-        message: `Tim dengan ID ${id} tidak ditemukan.`,
-      });
+    try {
+        const id = Number(req.params.id);
+        await teamRepository.deleteTeam(id);
+        
+        res.status(200).json({ status: "success", message: "Tim dan data terkait berhasil dihapus" });
+    } catch (error) {
+        console.error("Error in deleteTeam:", error);
+        if (error.code === 'P2025') {
+            return res.status(404).json({ status: "error", message: "Tim tidak ditemukan" });
+        }
+        res.status(500).json({ status: "error", message: "Server error" });
     }
-
-    await teamRepository.deleteTeam(id);
-
-    res.status(200).json({
-      status: "success",
-      message: "Tim berhasil dihapus.",
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "error",
-      message: "Server error",
-    });
-  }
 };
 
 module.exports = {
-  getAllTeams,
-  getTeamById,
-  createTeam,
-  updateTeam,
-  deleteTeam,
+    getAllTeams,
+    getTeamById,
+    createTeam,
+    updateTeam,
+    deleteTeam,
 };

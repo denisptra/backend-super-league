@@ -28,7 +28,14 @@ const getAllNews = async (req, res) => {
 
 const getNewsById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: "fail",
+        message: "ID harus berupa angka.",
+      });
+    }
+
     const news = await newsRepository.findNewsById(id);
 
     if (!news) {
@@ -62,7 +69,7 @@ const createNews = async (req, res) => {
       });
     }
 
-    const author = await userRepository.findUserById(authorId);
+    const author = await userRepository.findUserById(Number(authorId));
     if (!author) {
       return res.status(404).json({
         status: "error",
@@ -70,13 +77,16 @@ const createNews = async (req, res) => {
       });
     }
 
-    const news = await newsRepository.createNews({
+    const newsData = {
       title,
       description,
+      image: req.body.image,
       date: date ? new Date(date) : new Date(),
       status: status || "Pending",
       authorId: Number(authorId),
-    });
+    };
+
+    const news = await newsRepository.createNews(newsData);
 
     res.status(201).json({
       status: "success",
@@ -94,6 +104,12 @@ const createNews = async (req, res) => {
 const updateNews = async (req, res) => {
   try {
     const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: "fail",
+        message: "ID harus berupa angka.",
+      });
+    }
 
     const newsExist = await newsRepository.findNewsById(id);
     if (!newsExist) {
@@ -103,25 +119,53 @@ const updateNews = async (req, res) => {
       });
     }
 
-    if (req.body.authorId) {
-      const author = await userRepository.findUserById(req.body.authorId);
+    const updateData = {};
+    const allowedFields = [
+      "title",
+      "description",
+      "image",
+      "date",
+      "status",
+      "authorId",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    if (updateData.authorId) {
+      const authorIdNum = Number(updateData.authorId);
+      if (isNaN(authorIdNum)) {
+        return res.status(400).json({
+          status: "error",
+          message: "Author ID harus berupa angka.",
+        });
+      }
+
+      const author = await userRepository.findUserById(authorIdNum);
       if (!author) {
         return res.status(404).json({
           status: "error",
-          message: `Author dengan ID ${req.body.authorId} tidak ditemukan.`,
+          message: `Author dengan ID ${authorIdNum} tidak ditemukan.`,
         });
       }
+      updateData.authorId = authorIdNum;
+    } 
+
+    if (updateData.date) {
+      updateData.date = new Date(updateData.date);
     }
 
-    const updatedNews = await newsRepository.updateNews(id, {
-      title: req.body.title ?? newsExist.title,
-      description: req.body.description ?? newsExist.description,
-      date: req.body.date ? new Date(req.body.date) : newsExist.date,
-      status: req.body.status ?? newsExist.status,
-      authorId: req.body.authorId
-        ? Number(req.body.authorId)
-        : newsExist.authorId,
-    });
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        status: "fail",
+        message: "Tidak ada data yang dikirim untuk diperbarui.",
+      });
+    }
+
+    const updatedNews = await newsRepository.updateNews(id, updateData);
 
     res.status(200).json({
       status: "success",
@@ -138,7 +182,13 @@ const updateNews = async (req, res) => {
 
 const deleteNews = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: "fail",
+        message: "ID harus berupa angka.",
+      });
+    }
 
     const existingNews = await newsRepository.findNewsById(id);
     if (!existingNews) {
@@ -147,9 +197,7 @@ const deleteNews = async (req, res) => {
         message: `Berita dengan ID ${id} tidak ditemukan.`,
       });
     }
-
     await newsRepository.deleteNews(id);
-
     res.status(200).json({
       status: "success",
       message: "Berita berhasil dihapus.",

@@ -20,12 +20,19 @@ async function createNews(data) {
   });
 }
 
-async function updateNews(id, data) {
-  return prisma.news.update({
-    where: { id: Number(id) },
-    data,
-  });
-}
+const updateNews = async (id, updateData) => {
+  try {
+    const updatedNews = await prisma.news.update({
+      where: {
+        id: id,
+      },
+      data: updateData,
+    });
+    return updatedNews;
+  } catch (error) {
+    throw new Error(`Gagal memperbarui berita: ${error.message}`);
+  }
+};
 
 async function deleteNews(id) {
   return prisma.news.delete({
