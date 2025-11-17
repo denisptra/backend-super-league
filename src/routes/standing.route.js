@@ -5,4 +5,5 @@ const { getLeagueStandings } = require('../controllers/standing.controller');
 // const authorizeRole = require('../middlewares/role.middleware');
 
 router.get('/standings', getLeagueStandings);
+
 module.exports = router;
